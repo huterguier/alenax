@@ -2,25 +2,22 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any
 
-import ale_py
 import gymnasium
-import gymnax
 import jax
 import jax.numpy as jnp
 import numpy as np
-from gymnax.environments.environment import Environment
+from ale_py.vector_env import AtariVectorEnv
+from gymnax.environments.environment import Environment, EnvState
 from gymnax.environments.spaces import Box, Discrete, Space
 
 _alenax_environments = {}
 
 
 @jax.tree_util.register_dataclass
-@dataclass
-class AtariState:
+@dataclass(frozen=True)
+class AtariState(EnvState):
     env_id: jax.Array
-
-
-AtariParams = Any
+    info: dict[Any, Any]
 
 
 class AtariEnv(Environment):
@@ -34,19 +31,21 @@ class AtariEnv(Environment):
 
     def __init__(self, id: str, **kwargs):
         self.id = id
-        env = gymnasium.make_vec(self.id, num_envs=1, **kwargs)
+        env = AtariVectorEnv(self.id, num_envs=1, **kwargs)
         obs, _ = env.reset()
         action = env.action_space.sample()
-        obs, reward, terminated, truncated, info = env.step(action)
-        state = AtariState(env_id=jnp.int32(0))
+        obs, reward, terminated, _, info = env.step(action)
         result = (
-            jnp.array(obs),
-            state,
-            jnp.array(reward, dtype=jnp.float32),
-            jnp.array(terminated, dtype=jnp.bool),
-            jax.tree.map(jnp.array, info),
+            jnp.asarray(obs),
+            AtariState(
+                env_id=jnp.int32(0),
+                info=jax.tree.map(jnp.asarray, info),
+                time=jnp.int32(0),
+            ),
+            jnp.asarray(reward, dtype=jnp.float32),
+            jnp.asarray(terminated, dtype=jnp.bool),
+            jax.tree.map(jnp.asarray, info),
         )
-        print(len(jax.tree.leaves(result)))
         self.result_shape_dtype = jax.tree.map(
             lambda x: jax.ShapeDtypeStruct(x.shape[1:], x.dtype), (result)
         )
@@ -58,7 +57,7 @@ class AtariEnv(Environment):
 
     @partial(jax.jit, static_argnames=("self",))
     def reset(
-        self, key: jax.Array, params: AtariParams | None = None
+        self, key: jax.Array, params: None = None
     ) -> tuple[jax.Array, AtariState]:
         del params
 
@@ -67,12 +66,15 @@ class AtariEnv(Environment):
             shape = key.shape[:-1]
             keys_flat = jnp.reshape(key, (-1, key.shape[-1]))
             num_envs = keys_flat.shape[0]
-            envs = gymnasium.make_vec(self.id, num_envs=num_envs, **self.kwargs)
+            envs = AtariVectorEnv(self.id, num_envs=num_envs, **self.kwargs)
             obs, info = envs.reset(seed=0)
             env_id = len(_alenax_environments)
             _alenax_environments[env_id] = envs
             obs = np.reshape(obs, shape + obs.shape[1:])
-            state = AtariState(env_id=jnp.full(shape, env_id, dtype=jnp.int32))
+            info = jax.tree.map(lambda i: np.reshape(i, shape + i.shape[1:]), info)
+            state = AtariState(
+                env_id=jnp.full(shape, env_id, dtype=jnp.int32), info=info, time=0
+            )
 
             return obs, state
 
@@ -90,30 +92,30 @@ class AtariEnv(Environment):
         key: jax.Array,
         state: AtariState,
         action: int | float | jax.Array,
-        params: AtariParams | None = None,
+        params: None = None,
     ) -> tuple[jax.Array, AtariState, jax.Array, jax.Array, dict[Any, Any]]:
         del key, params
 
-        def callback(env_id, action):
+        def callback(env_id, time, action):
             global envs_gymnasium
             shape = env_id.shape
             envs = _alenax_environments[np.ravel(env_id)[0]]
             actions = np.reshape(np.asarray(action), (-1,))
             obs, reward, terminated, truncated, info = envs.step(actions)
             obs = np.reshape(obs, shape + obs.shape[1:])
-            state = AtariState(env_id=env_id)
             reward = jnp.reshape(reward, shape).astype(np.float32)
             done = jnp.reshape(jnp.logical_or(terminated, truncated), shape).astype(
                 np.bool
             )
             info = jax.tree.map(lambda i: np.reshape(i, shape + i.shape[1:]), info)
-            print(len(jax.tree.leaves((obs, state, reward, done, info))))
+            state = AtariState(env_id=env_id, info=info, time=(1 - done) * (time + 1))
             return obs, state, reward, done, info
 
         obs, state, reward, done, info = jax.pure_callback(
             callback,
             self.result_shape_dtype,
             state.env_id,
+            state.time,
             action,
             vmap_method="broadcast_all",
         )
