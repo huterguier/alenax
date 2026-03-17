@@ -11,24 +11,25 @@
 All you need to do is import the environment and `alenax` takes care of the rest. While it interfaces with the CPU-based ALE under the hood, it exposes a purely JAX-compatible API so you can trace, compile, and batch your environments effortlessly.
 
 ## Features
-- 🧸 **Easy to Use:** Simply initialize `AtariEnv` with your target game and start stepping. `alenax` handles all the complex boilerplate of plumbing the environment data through JAX's transformations.
+- ✨ **Easy to Use:** Simply initialize `AtariEnv` with your target game and start stepping. `alenax` handles all the complex boilerplate of plumbing the environment data through JAX's transformations.
 - 🔌 **Seamless Integration:** Designed to mimic the `gymnax` API natively, meaning it acts as a drop-in replacement for any `gymnax`-compatible RL pipeline.
 - 🚀 **Fast and Efficient:** All environment methods (`reset`, `step`) are fully JIT-compiled and natively support `jax.vmap` for batched execution out of the box.
 
 ## Sharp Bits 🔪
 Due to the nature of wrapping a CPU-based C++ emulator in JAX, there are a few limitations to keep in mind:
 - 🛤️ **Sequential Rollouts Only:** Natively supports sequential forward execution.
-- 👻 **Environment State:** The JAX `state` object does not save the true underlying emulator state. Instead, it merely holds a reference to the environment instance running on the CPU.
+- 💾 **Environment State:** The JAX `state` object does not save the true underlying emulator state. Instead, it merely holds a reference to the environment instance running on the CPU.
 - 🌳 **No MCTS:** Because the true state cannot be perfectly saved and restored within JAX, Monte Carlo Tree Search and similar planning algorithms are not possible.
 - 🔄 **Reset Behavior:** Calling `reset()` internally instantiates a completely new environment object rather than resetting an existing one.
 
-## Quick Start
-
-### Installation
+## Installation
 `alenax` requires Python >= 3.10 and can be installed via pip:
 ```bash
 pip install alenax
 ```
+
+## Quick Start
+Getting up and running with `alenax` is designed to be as frictionless as possible for those familiar with standard JAX and RL environments. Below you will find a brief walkthrough on how to initialize an environment, interact with it using random keys, and apply standard Atari wrappers.
 
 ### Basic Usage
 The API follows the standard JAX-based environment patterns. You initialize the environment and pass PRNG keys to `reset` and `step`. 
