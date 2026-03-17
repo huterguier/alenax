@@ -8,7 +8,7 @@ A JAX wrapper for the [Arcade Learning Environment](https://github.com/Farama-Fo
 pip install alenax
 ```
 
-Requires Python >= 3.13.
+Requires Python >= 3.10.
 
 ## Usage
 
