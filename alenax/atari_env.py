@@ -123,3 +123,9 @@ class AtariEnv(Environment):
         )
 
         return obs, state, reward, done, info
+
+    def action_space(self, params: None = None) -> Discrete:
+        return self._action_space
+
+    def observation_space(self, params: None = None) -> Box:
+        return self._observation_space
