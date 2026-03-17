@@ -2,13 +2,12 @@ from dataclasses import dataclass
 from functools import partial
 from typing import Any
 
-import gymnasium
 import jax
 import jax.numpy as jnp
 import numpy as np
 from ale_py.vector_env import AtariVectorEnv
 from gymnax.environments.environment import Environment, EnvState
-from gymnax.environments.spaces import Box, Discrete, Space
+from gymnax.environments.spaces import Box, Discrete
 
 _alenax_environments = {}
 
@@ -49,9 +48,11 @@ class AtariEnv(Environment):
         self.result_shape_dtype = jax.tree.map(
             lambda x: jax.ShapeDtypeStruct(x.shape[1:], x.dtype), (result)
         )
-        self._action_space = self.gymnasium_to_gymnax_space(env.single_action_space)
-        self._observation_space = self.gymnasium_to_gymnax_space(
-            env.single_observation_space
+        self._action_space = Discrete(env.single_action_space.n)
+        self._observation_space = Box(
+            jnp.asarray(env.single_observation_space.low),
+            jnp.asarray(env.single_observation_space.high),
+            env.single_observation_space.shape,
         )
         self.kwargs = kwargs
 
@@ -121,19 +122,3 @@ class AtariEnv(Environment):
         )
 
         return obs, state, reward, done, info
-
-    @classmethod
-    def gymnasium_to_gymnax_space(cls, gymnasium_space: Any) -> Space:
-        """Convert a Gymnasium space to a Gymnax space."""
-        if isinstance(gymnasium_space, gymnasium.spaces.Discrete):
-            return Discrete(int(gymnasium_space.n))
-        elif isinstance(gymnasium_space, gymnasium.spaces.Box):
-            return Box(
-                jnp.asarray(gymnasium_space.low),
-                jnp.asarray(gymnasium_space.high),
-                gymnasium_space.shape,
-            )
-        else:
-            raise NotImplementedError(
-                f"Gymnasium space {gymnasium_space} not supported."
-            )
