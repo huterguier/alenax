@@ -4,7 +4,7 @@
 
 # Arcade Learning Environment for JAX
 [![PyPI version](https://img.shields.io/pypi/v/alenax.svg)](#installation)
-[![License: Apache-2.0](https://img.shields.io/github/license/huterguier/alenax?color=yellow)](https://www.apache.org/licenses/LICENSE-2.0)
+[![License: MIT](https://img.shields.io/badge/license-MIT-1d8a50.svg)](https://opensource.org/licenses/MIT)
 [![Code Style: Black](https://img.shields.io/badge/codestyle-black-black.svg)](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)
 
 [`alenax`](https://github.com/huterguier/alenax) is a fast and easy-to-use JAX wrapper for the [Arcade Learning Environment](https://github.com/Farama-Foundation/Arcade-Learning-Environment), fully compatible with [`gymnax`](https://github.com/RobertTLange/gymnax). 
