@@ -1,37 +1,82 @@
-# alenax
+<div align="center">
+    <img src="https://github.com/huterguier/alenax/blob/main/images/alenax.png" width="300">
+</div>
 
-A JAX wrapper for the [Arcade Learning Environment](https://github.com/Farama-Foundation/Arcade-Learning-Environment), compatible with [Gymnax](https://github.com/RobertTLange/gymnax).
+# Arcade Learning Environment for JAX
+[![PyPI version](https://img.shields.io/pypi/v/alenax.svg)](#installation)
+[![License: Apache-2.0](https://img.shields.io/github/license/huterguier/alenax?color=yellow)](https://www.apache.org/licenses/LICENSE-2.0)
+[![Code Style: Black](https://img.shields.io/badge/codestyle-black-black.svg)](https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)
 
-## Installation
+[`alenax`](https://github.com/huterguier/alenax) is a fast and easy-to-use JAX wrapper for the [Arcade Learning Environment](https://github.com/Farama-Foundation/Arcade-Learning-Environment), fully compatible with [`gymnax`](https://github.com/RobertTLange/gymnax). 
+All you need to do is import the environment and `alenax` takes care of the rest. While it interfaces with the CPU-based ALE under the hood, it exposes a purely JAX-compatible API so you can trace, compile, and batch your environments effortlessly.
 
+## Features
+- 🧸 **Easy to Use:** Simply initialize `AtariEnv` with your target game and start stepping. `alenax` handles all the complex boilerplate of plumbing the environment data through JAX's transformations.
+- 🔌 **Seamless Integration:** Designed to mimic the `gymnax` API natively, meaning it acts as a drop-in replacement for any `gymnax`-compatible RL pipeline.
+- 🚀 **Fast and Efficient:** All environment methods (`reset`, `step`) are fully JIT-compiled and natively support `jax.vmap` for batched execution out of the box.
+
+## Sharp Bits 🔪
+Due to the nature of wrapping a CPU-based C++ emulator in JAX, there are a few limitations to keep in mind:
+- 🛤️ **Sequential Rollouts Only:** Natively supports sequential forward execution.
+- 👻 **Environment State:** The JAX `state` object does not save the true underlying emulator state. Instead, it merely holds a reference to the environment instance running on the CPU.
+- 🌳 **No MCTS:** Because the true state cannot be perfectly saved and restored within JAX, Monte Carlo Tree Search and similar planning algorithms are not possible.
+- 🔄 **Reset Behavior:** Calling `reset()` internally instantiates a completely new environment object rather than resetting an existing one.
+
+## Quick Start
+
+### Installation
+`alenax` requires Python >= 3.10 and can be installed via pip:
 ```bash
 pip install alenax
 ```
 
-Requires Python >= 3.10.
-
-## Usage
+### Basic Usage
+The API follows the standard JAX-based environment patterns. You initialize the environment and pass PRNG keys to `reset` and `step`. 
 
 ```python
 import jax
 from alenax import AtariEnv
 
+# Initialize the environment
 env = AtariEnv("pong")
 key = jax.random.PRNGKey(0)
 
+# Reset the environment
 obs, state = env.reset(key)
+
+# Step the environment
+action = env.action_space().sample(key)
 obs, state, reward, done, info = env.step(key, state, action)
 ```
 
-All environment methods are JIT-compiled and support `jax.vmap` for batched execution.
-
-## Wrappers
+Because all methods are natively JAX-compatible, you can easily use `jax.vmap` to run multiple environments in parallel:
 
 ```python
-from alenax import ClipReward, EpisodicLife, RecordEpisodeStatistics
+# Batched execution over 4 environments
+keys = jax.random.split(key, 4)
+obs, state = jax.vmap(env.reset)(keys)
+```
+
+### Wrappers
+`alenax` provides several out-of-the-box JAX wrappers specifically geared toward standard Atari preprocessing.
+
+```python
+from alenax import AtariEnv, ClipReward, EpisodicLife, RecordEpisodeStatistics
 
 env = AtariEnv("pong")
 env = ClipReward(env)              # Clip rewards to [-1, 1]
 env = EpisodicLife(env)            # Treat life loss as episode end
 env = RecordEpisodeStatistics(env) # Track episode returns and lengths
+```
+
+## Citation
+If you use `alenax` in your work, feel free to cite it as follows:
+```bibtex
+@software{alenax2026github,
+  author = {huterguier},
+  title = {{alenax}: Arcade Learning Environment for JAX.},
+  url = {[https://github.com/huterguier/alenax](https://github.com/huterguier/alenax)},
+  version = {0.1.3},
+  year = {2026},
+}
 ```
