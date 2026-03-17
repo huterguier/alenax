@@ -75,7 +75,7 @@ class AtariEnv(Environment):
             obs = np.reshape(obs, shape + obs.shape[1:])
             info = jax.tree.map(lambda i: np.reshape(i, shape + i.shape[1:]), info)
             state = AtariState(
-                env_id=jnp.full(shape, env_id, dtype=jnp.int32), info=info, time=0
+                env_id=jnp.full(shape, env_id, dtype=jnp.int32), info=info, time=jnp.zeros(shape, dtype=jnp.int32)
             )
 
             return obs, state
