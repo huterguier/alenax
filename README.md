@@ -38,14 +38,11 @@ The API follows the standard JAX-based environment patterns. You initialize the 
 import jax
 from alenax import AtariEnv
 
-# Initialize the environment
 env = AtariEnv("pong")
-key = jax.random.PRNGKey(0)
+key = jax.random.key(0)
 
-# Reset the environment
 obs, state = env.reset(key)
 
-# Step the environment
 action = env.action_space().sample(key)
 obs, state, reward, done, info = env.step(key, state, action)
 ```
@@ -53,7 +50,6 @@ obs, state, reward, done, info = env.step(key, state, action)
 Because all methods are natively JAX-compatible, you can easily use `jax.vmap` to run multiple environments in parallel:
 
 ```python
-# Batched execution over 4 environments
 keys = jax.random.split(key, 4)
 obs, state = jax.vmap(env.reset)(keys)
 ```
