@@ -19,7 +19,7 @@ class ClipReward(GymnaxWrapper):
         self,
         key: jax.Array,
         state: environment.EnvState,
-        action: int | float,
+        action: int | float | jax.Array,
         params: environment.EnvParams | None = None,
     ):
         next_obs, next_state, reward, done, info = self._env.step(

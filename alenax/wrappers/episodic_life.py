@@ -14,8 +14,8 @@ from alenax.atari_env import AtariState
 @dataclass(frozen=True)
 class EpisodicLifeState:
     env_state: environment.EnvState
-    lives: int
-    time: int
+    lives: jax.Array
+    time: jax.Array
 
     def __getattr__(self, name: str) -> Any:
         if name in self.__dataclass_fields__:
@@ -32,7 +32,7 @@ class EpisodicLife(GymnaxWrapper):
     ) -> tuple[jax.Array, EpisodicLifeState]:
         obs, state = self._env.reset(key, params)
         return obs, EpisodicLifeState(
-            env_state=state, lives=state.info["lives"], time=0
+            env_state=state, lives=state.info["lives"], time=jnp.int32(0)
         )
 
     @partial(jax.jit, static_argnames=("self",))
@@ -40,7 +40,7 @@ class EpisodicLife(GymnaxWrapper):
         self,
         key: jax.Array,
         state: EpisodicLifeState,
-        action: int | float,
+        action: int | float | jax.Array,
         params: environment.EnvParams | None = None,
     ) -> tuple[jax.Array, EpisodicLifeState, jax.Array, jax.Array, dict[Any, Any]]:
         prev_lives = state.env_state.info["lives"]

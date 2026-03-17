@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any
 
 import jax
+import jax.numpy as jnp
 from gymnax.environments import environment
 from gymnax.wrappers.purerl import GymnaxWrapper
 
@@ -11,10 +12,10 @@ from gymnax.wrappers.purerl import GymnaxWrapper
 @dataclass(frozen=True)
 class RecordEpisodeStatisticsState:
     env_state: environment.EnvState
-    episode_returns: float
-    episode_lengths: int
-    returned_episode_returns: float
-    returned_episode_lengths: int
+    episode_returns: jax.Array
+    episode_lengths: jax.Array
+    returned_episode_returns: jax.Array
+    returned_episode_lengths: jax.Array
 
     def __getattr__(self, name: str) -> Any:
         if name in self.__dataclass_fields__:
@@ -30,7 +31,13 @@ class RecordEpisodeStatistics(GymnaxWrapper):
         self, key: jax.Array, params: None = None
     ) -> tuple[jax.Array, RecordEpisodeStatisticsState]:
         obs, env_state = self._env.reset(key, params)
-        state = RecordEpisodeStatisticsState(env_state, 0, 0, 0, 0)
+        state = RecordEpisodeStatisticsState(
+            env_state,
+            jnp.float32(0),
+            jnp.int32(0),
+            jnp.float32(0),
+            jnp.int32(0),
+        )
         return obs, state
 
     @partial(jax.jit, static_argnames=("self",))
@@ -38,7 +45,7 @@ class RecordEpisodeStatistics(GymnaxWrapper):
         self,
         key: jax.Array,
         state: RecordEpisodeStatisticsState,
-        action: int | float,
+        action: int | float | jax.Array,
         params: None = None,
     ) -> tuple[
         jax.Array, RecordEpisodeStatisticsState, jax.Array, jax.Array, dict[Any, Any]

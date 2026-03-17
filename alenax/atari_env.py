@@ -9,7 +9,7 @@ from ale_py.vector_env import AtariVectorEnv
 from gymnax.environments.environment import Environment, EnvState
 from gymnax.environments.spaces import Box, Discrete
 
-_alenax_environments = {}
+_alenax_environments: dict[int, Any] = {}
 
 
 @jax.tree_util.register_dataclass
@@ -31,6 +31,7 @@ class AtariEnv(Environment):
     def __init__(self, id: str, **kwargs):
         self.id = id
         env = AtariVectorEnv(self.id, num_envs=1, **kwargs)
+        obs: Any
         obs, _ = env.reset()
         action = env.action_space.sample()
         obs, reward, terminated, _, info = env.step(action)
@@ -48,10 +49,10 @@ class AtariEnv(Environment):
         self.result_shape_dtype = jax.tree.map(
             lambda x: jax.ShapeDtypeStruct(x.shape[1:], x.dtype), (result)
         )
-        self._action_space = Discrete(env.single_action_space.n)
+        self._action_space = Discrete(env.single_action_space.n)  # type: ignore[attr-defined]
         self._observation_space = Box(
-            jnp.asarray(env.single_observation_space.low),
-            jnp.asarray(env.single_observation_space.high),
+            jnp.asarray(env.single_observation_space.low),  # type: ignore[attr-defined]
+            jnp.asarray(env.single_observation_space.high),  # type: ignore[attr-defined]
             env.single_observation_space.shape,
         )
         self.kwargs = kwargs
@@ -106,7 +107,7 @@ class AtariEnv(Environment):
             obs = np.reshape(obs, shape + obs.shape[1:])
             reward = jnp.reshape(reward, shape).astype(np.float32)
             done = jnp.reshape(jnp.logical_or(terminated, truncated), shape).astype(
-                np.bool
+                np.bool_
             )
             info = jax.tree.map(lambda i: np.reshape(i, shape + i.shape[1:]), info)
             state = AtariState(env_id=env_id, info=info, time=(1 - done) * (time + 1))
